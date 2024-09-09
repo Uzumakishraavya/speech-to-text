@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Floating background circles for subtle motion */
+        .background-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .background-circle.small {
+            width: 200px;
+            height: 200px;
+            background: rgba(135, 206, 235, 0.5);
+            top: 10%;
+            left: 10%;
+            animation-duration: 12s;
+        }
+
+        .background-circle.medium {
+            width: 300px;
+            height: 300px;
+            background: rgba(173, 216, 230, 0.4);
+            bottom: 15%;
+            right: 5%;
+            animation-duration: 16s;
+        }
+
+        .background-circle.large {
+            width: 500px;
+            height: 500px;
+            background: rgba(135, 206, 250, 0.3);
+            top: 40%;
+            left: 70%;
+            animation-duration: 20s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-30px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* Container for recognized words */
+        .words {
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            z-index: 1;
+            animation: fadeIn 2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Styling the text */
+        p {
+            font-size: 1.5em;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.5s ease;
+        }
+
+        .words.listening p {
+            color: #007bff;
+        }
+
+        /* Microphone button styling */
+        .mic-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 20px;
+            margin-top: 30px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 123, 255, 0.4);
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            outline: none;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mic-button.active {
+            background-color: #dc3545;
+            transform: scale(1.15);
+        }
+
+        .mic-button:hover {
+            background-color: #0056b3;
+        }
+
+        .mic-button:active {
+            transform: scale(0.95);
+        }
+
+        .mic-icon {
+            font-size: 2rem;
+        }
+
+        /* Enhanced pulse animation for active speech */
+        .pulse {
+            position: absolute;
+            border: 5px solid rgba(255, 0, 0, 0.7);
+            border-radius: 50%;
+            animation: pulsate 1.5s infinite ease-in-out;
+            z-index: 0;
+        }
+
+        @keyframes pulsate {
+            0% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+        }
+
+        .pulse.active {
+            display: block;
+        }
+
+        .pulse {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Floating circles for background visual interest -->
+    <div class="background-circle small"></div>
+    <div class="background-circle medium"></div>
+    <div class="background-circle large"></div>
+
+    <!-- Visual pulse effect for active mic -->
+    <div class="pulse"></div>
+
+    <!-- Displaying the recognized words -->
+    <div class="words">
+        <p id="p">Click the mic to start speaking...</p>
+    </div>
+
+    <!-- Microphone toggle button -->
+    <button class="mic-button" id="micButton">
+        <span class="mic-icon">🎤</span>
+    </button>
+
+    <script>
+        let isListening = false;
+        const micButton = document.getElementById('micButton');
+        const pulse = document.querySelector('.pulse');
+        const words = document.querySelector('.words');
+        const wordsDisplay = document.getElementById('p');
+
+        // Speech recognition setup
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.interimResults = true;
+
+        recognition.addEventListener('result', e => {
+            const transcript = Array.from(e.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            wordsDisplay.innerHTML = transcript;
+        });
+
+        recognition.addEventListener('end', () => {
+            if (isListening) {
+                recognition.start(); // Keep listening until stopped
+            }
+        });
+
+        // Toggle microphone on/off
+        micButton.addEventListener('click', () => {
+            if (isListening) {
+                recognition.stop(); // Stop listening
+                micButton.classList.remove('active');
+                pulse.classList.remove('active');
+                words.classList.remove('listening');
+                isListening = false;
+                wordsDisplay.innerHTML = "Mic turned off...";
+            } else {
+                recognition.start(); // Start listening
+                micButton.classList.add('active');
+                pulse.classList.add('active');
+                words.classList.add('listening');
+                isListening = true;
+                wordsDisplay.innerHTML = "Listening...";
+            }
+        });
+    </script>
+</body>
+
+</html>
